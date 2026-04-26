@@ -1,36 +1,32 @@
-name: Java CI with Maven
+name: Automated Code Review
 
-# 1. Kích hoạt khi có sự kiện push hoặc pull_request
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: maven
 
-      # 2. Thực thi vòng đời build của Maven (test và package)
-      - name: Run Maven Test and Package
-        run: mvn clean package
+      - name: Run Checkstyle
+        run: mvn checkstyle:check
 
-      # 3. Triển khai upload-artifact để lưu giữ file .jar
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v4
-        # Chạy action này bất kể bước trên thành công hay thất bại (để phục vụ việc test lỗi)
-        if: always()
+      - name: Post Comments to PR
+        if: failure()
+        uses: dbelyaev/action-checkstyle@master
         with:
-          name: math-utils-jar
-          path: target/*.jar
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          level: warning
+          reporter: github-pr-review #
